@@ -9,13 +9,11 @@ import java.io.InputStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.naming.InitialContext;
-
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xssf.eventusermodel.XSSFReader;
 import org.apache.poi.xssf.model.SharedStringsTable;
@@ -30,11 +28,9 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 import org.xml.sax.helpers.XMLReaderFactory;
-
 import com.arjuna.databroker.data.DataConsumer;
 import com.arjuna.databroker.data.DataProcessor;
 import com.arjuna.databroker.data.DataProvider;
-import com.arjuna.databroker.data.DataService;
 
 public class XSSFDataProcessor implements DataProcessor
 {
@@ -63,19 +59,64 @@ public class XSSFDataProcessor implements DataProcessor
         return Collections.unmodifiableMap(_properties);
     }
 
+    private static class WorkbookHandler extends DefaultHandler
+    {
+        private WorkbookHandler(SharedStringsTable sharedStringsTable)
+        {
+            _sharedStringsTable = sharedStringsTable;
+            _content            = new StringBuffer();
+        }
+
+        @Override
+        public void startElement(String uri, String localName, String name, Attributes attributes)
+            throws SAXException
+        {
+            System.out.print("start: " + uri + ", " + localName + ", " + name + "[");
+            for (int index = 0; index < attributes.getLength(); index++)
+                System.out.print("<name=" + attributes.getLocalName(index) + ", url=" + attributes.getURI(index)  + ", qname=" + attributes.getQName(index)+ ", value=" + attributes.getValue(index) + ">");
+            System.out.println("]");
+
+            _content = new StringBuffer();
+        }
+
+        @Override
+        public void endElement(String uri, String localName, String name)
+            throws SAXException
+        {
+            System.out.println("end :" + name);
+        }
+
+        @Override
+        public void characters(char[] characters, int start, int length)
+            throws SAXException
+        {
+            _content.append(characters, start, length);
+        }
+
+        private SharedStringsTable _sharedStringsTable;
+        private StringBuffer       _content;
+        private boolean            _nextIsString;
+    }
+
     private static class SheetHandler extends DefaultHandler
     {
         private SheetHandler(SharedStringsTable sharedStringsTable)
         {
             _sharedStringsTable = sharedStringsTable;
         }
-        
+
+        @Override
         public void startElement(String uri, String localName, String name, Attributes attributes)
             throws SAXException
         {
+            System.out.print("start :" + name + "[");
+            for (int index = 0; index < attributes.getLength(); index++)
+                System.out.print("<qname=" + attributes.getQName(index) + ",type=" + attributes.getType(index) + ",value=" + attributes.getValue(index) + ">");
+            System.out.println("]");
+
             if (name.equals("c"))
             {
-                 System.out.print(attributes.getValue("r") + " - ");
+//                 System.out.print(attributes.getValue("r") + " - ");
                  String cellType = attributes.getValue("t");
                  if (cellType != null && cellType.equals("s"))
                      _nextIsString = true;
@@ -85,9 +126,11 @@ public class XSSFDataProcessor implements DataProcessor
             _lastContents = "";
         }
         
+        @Override
         public void endElement(String uri, String localName, String name)
             throws SAXException
         {
+            System.out.println("end :" + name);
             if (_nextIsString)
             {
                 int index = Integer.parseInt(_lastContents);
@@ -95,14 +138,15 @@ public class XSSFDataProcessor implements DataProcessor
                 _nextIsString = false;
             }
 
-            if (name.equals("v"))
-                System.out.println(_lastContents);
+ //           if (name.equals("v"))
+ //               System.out.println(_lastContents);
         }
 
-        public void characters(char[] character, int start, int length)
+        @Override
+        public void characters(char[] characters, int start, int length)
             throws SAXException
         {
-            _lastContents += new String(character, start, length);
+            _lastContents += new String(characters, start, length);
         }
 
         private SharedStringsTable _sharedStringsTable;
@@ -118,18 +162,39 @@ public class XSSFDataProcessor implements DataProcessor
             XSSFReader         xssfReader         = new XSSFReader(opcPackage);
             SharedStringsTable sharedStringsTable = xssfReader.getSharedStringsTable();
 
-            XMLReader      parser  = XMLReaderFactory.createXMLReader("org.apache.xerces.parsers.SAXParser");
-            ContentHandler handler = new SheetHandler(sharedStringsTable);
-            parser.setContentHandler(handler);
+            XMLReader      workbookParser      = XMLReaderFactory.createXMLReader("org.apache.xerces.parsers.SAXParser");
+            ContentHandler workbookHandler     = new WorkbookHandler(sharedStringsTable);
+            workbookParser.setContentHandler(workbookHandler);
+
+            InputStream    workbookInputStream = xssfReader.getWorkbookData();
+            InputSource    workbookSource      = new InputSource(workbookInputStream);
+            workbookParser.parse(workbookSource);
+            workbookInputStream.close();
             
-            InputStream sheetStream = xssfReader.getSheet("rId2");
-            InputSource sheetSource = new InputSource(sheetStream);
-            parser.parse(sheetSource);
-            sheetStream.close();
+            XMLReader      sheetParser  = XMLReaderFactory.createXMLReader("org.apache.xerces.parsers.SAXParser");
+            ContentHandler sheetHandler = new SheetHandler(sharedStringsTable);
+            sheetParser.setContentHandler(sheetHandler);
+
+            Iterator<InputStream> sheetInputStreamIterator = xssfReader.getSheetsData();
+            while (sheetInputStreamIterator.hasNext())
+            {
+                InputStream sheetInputStream = sheetInputStreamIterator.next();
+                /*
+                InputSource sheetSource = new InputSource(sheetInputStream);
+                parser.parse(sheetSource);
+                */
+                int ch = sheetInputStream.read();
+                while (ch != -1)
+                {
+                    System.out.print((char) ch);
+                    ch = sheetInputStream.read();
+                }
+                sheetInputStream.close();
+            }
         }
         catch (Throwable throwable)
         {
-            
+            logger.log(Level.WARNING, "Proplem processing XSSF file \"" + data.getAbsolutePath() + "\"", throwable);
         }
     }
 
