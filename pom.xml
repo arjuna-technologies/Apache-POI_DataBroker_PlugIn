@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--                                                                                                     -->
+<!-- Copyright (c) 2014, Arjuna Technologies Limited, Newcastle-upon-Tyne, England. All rights reserved. -->
+<!--                                                                                                     -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.arjuna.dbplugins.apachepoi</groupId>
+    <artifactId>apachepoi-plugin-parent</artifactId>
+    <version>1.0.0p1m1</version>
+
+    <packaging>pom</packaging>
+
+    <name>Apache POI DataBroker PlugIn Parent</name>
+
+    <properties>
+        <version.com.arjuna.databroker>1.0.0p1m1</version.com.arjuna.databroker>
+
+        <jboss-as.username>username</jboss-as.username>
+        <jboss-as.password>password</jboss-as.password>
+        <jboss-as.hostname>databroker</jboss-as.hostname>
+        <jboss-as.domain>standalone-full</jboss-as.domain>
+
+        <wildfly.username>username</wildfly.username>
+        <wildfly.password>password</wildfly.password>
+        <wildfly.hostname>databroker</wildfly.hostname>
+        <wildfly.domain>standalone</wildfly.domain>
+
+        <maven.compiler.source>1.7</maven.compiler.source>
+        <maven.compiler.target>1.7</maven.compiler.target>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- JBossAS-7.1.1.Final
+        <servlet-api.version>3.0</servlet-api.version>
+        <ejb-api.version>3.1</ejb-api.version>
+        <jee.version>6</jee.version>
+        -->
+        <!-- WildFly-8.1.0.Final -->
+        <servlet-api.version>3.1</servlet-api.version>
+        <ejb-api.version>3.2</ejb-api.version>
+        <jee.version>7</jee.version>
+        <!--  -->
+    </properties>
+
+    <modules>
+        <module>apachepoi-xssf</module> 
+        <module>apachepoi-plugin</module>
+        <module>apachepoi-plugin-ear</module>
+    </modules>
+
+    <repositories>
+        <repository>
+            <id>JBoss repository</id>
+            <url>http://repository.jboss.org/nexus/content/groups/public/</url>
+        </repository>
+    </repositories>
+
+    <dependencyManagement>
+        <dependencies>
+             <!-- JBossAS-7.1.1.Final
+            <dependency>
+                <groupId>org.jboss.as</groupId>
+                <artifactId>jboss-as-dist</artifactId>
+                <version>7.1.1.Final</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            -->
+            <!-- WildFly-8.1.0.Final -->
+            <dependency>
+                <groupId>org.wildfly</groupId>
+                <artifactId>wildfly-dist</artifactId>
+                <version>8.1.0.Final</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.5</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-ejb-plugin</artifactId>
+                <version>2.3</version>
+                <configuration>
+                    <ejbVersion>${ejb-api.version}</ejbVersion>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-ear-plugin</artifactId>
+                <version>2.9</version>
+                <configuration>
+                    <version>${jee.version}</version>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.jboss.as.plugins</groupId>
+                <artifactId>jboss-as-maven-plugin</artifactId>
+                <version>7.5.Final</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.wildfly.plugins</groupId>
+                <artifactId>wildfly-maven-plugin</artifactId>
+                <version>1.0.2.Final</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>

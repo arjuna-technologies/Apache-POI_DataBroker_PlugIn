@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--                                                                                                     -->
+<!-- Copyright (c) 2014, Arjuna Technologies Limited, Newcastle-upon-Tyne, England. All rights reserved. -->
+<!--                                                                                                     -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.arjuna.dbplugins.apachepoi</groupId>
+        <artifactId>apachepoi-plugin-parent</artifactId>
+        <version>1.0.0p1m1</version>
+    </parent>
+
+    <artifactId>apachepoi-plugin-ear</artifactId>
+
+    <packaging>ear</packaging>
+
+    <name>Apache POI DataBroker PlugIn EAR</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.arjuna.dbplugins.apachepoi</groupId>
+            <artifactId>apachepoi-plugin</artifactId>
+            <version>1.0.0p1m1</version>
+            <type>ejb</type>
+        </dependency>
+        <dependency>
+            <groupId>com.arjuna.dbplugins.apachepoi</groupId>
+            <artifactId>apachepoi-xssf</artifactId>
+            <version>1.0.0p1m1</version>
+            <type>ejb</type>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-ear-plugin</artifactId>
+                <configuration>
+                    <includeLibInApplicationXml>true</includeLibInApplicationXml>
+                    <modules>
+                        <ejbModule>
+                            <groupId>com.arjuna.dbplugins.apachepoi</groupId>
+                            <artifactId>apachepoi-plugin</artifactId>
+                        </ejbModule>
+                        <ejbModule>
+                            <groupId>com.arjuna.dbplugins.apachepoi</groupId>
+                            <artifactId>apachepoi-xssf</artifactId>
+                        </ejbModule>
+                    </modules>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>jbossas</id>
+
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jboss.as.plugins</groupId>
+                        <artifactId>jboss-as-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>deploy</goal>
+                                </goals>
+                            </execution>
+                       </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>wildfly</id>
+    
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.wildfly.plugins</groupId>
+                        <artifactId>wildfly-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>deploy</goal>
+                                </goals>
+                            </execution>
+                       </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
