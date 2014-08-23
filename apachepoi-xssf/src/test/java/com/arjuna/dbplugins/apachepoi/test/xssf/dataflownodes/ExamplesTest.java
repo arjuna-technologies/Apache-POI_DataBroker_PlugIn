@@ -7,8 +7,11 @@ package com.arjuna.dbplugins.apachepoi.test.xssf.dataflownodes;
 import java.io.File;
 import java.util.Collections;
 import java.util.Map;
+
 import org.junit.Test;
-import com.arjuna.dbplugins.apachepoi.xssf.dataflownodes.XSSFDataProcessor;
+
+import com.arjuna.dbplugins.apachepoi.xssf.XSSFDataProcessor;
+
 import static org.junit.Assert.*;
 
 public class ExamplesTest

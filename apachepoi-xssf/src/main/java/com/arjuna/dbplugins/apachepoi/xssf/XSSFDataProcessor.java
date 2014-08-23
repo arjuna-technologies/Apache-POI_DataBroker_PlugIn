@@ -2,7 +2,7 @@
  * Copyright (c) 2014, Arjuna Technologies Limited, Newcastle-upon-Tyne, England. All rights reserved.
  */
 
-package com.arjuna.dbplugins.apachepoi.xssf.dataflownodes;
+package com.arjuna.dbplugins.apachepoi.xssf;
 
 import java.io.File;
 import java.io.InputStream;
@@ -20,7 +20,6 @@ import org.apache.poi.xssf.model.SharedStringsTable;
 import org.apache.poi.xssf.usermodel.XSSFRichTextString;
 import org.risbic.intraconnect.basic.BasicDataConsumer;
 import org.risbic.intraconnect.basic.BasicDataProvider;
-import org.w3c.dom.Document;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
@@ -38,7 +37,7 @@ public class XSSFDataProcessor implements DataProcessor
 
     public XSSFDataProcessor(String name, Map<String, String> properties)
     {
-        logger.log(Level.FINE, "ProviderXMLFeedDataService: " + name + ", " + properties);
+        logger.log(Level.FINE, "XSSFDataProcessor: " + name + ", " + properties);
 
         _name       = name;
         _properties = properties;
@@ -95,7 +94,6 @@ public class XSSFDataProcessor implements DataProcessor
 
         private SharedStringsTable _sharedStringsTable;
         private StringBuffer       _content;
-        private boolean            _nextIsString;
     }
 
     private static class SheetHandler extends DefaultHandler
@@ -194,7 +192,7 @@ public class XSSFDataProcessor implements DataProcessor
         }
         catch (Throwable throwable)
         {
-            logger.log(Level.WARNING, "Proplem processing XSSF file \"" + data.getAbsolutePath() + "\"", throwable);
+            logger.log(Level.WARNING, "Problem processing XSSF file \"" + data.getAbsolutePath() + "\"", throwable);
         }
     }
 
@@ -232,7 +230,7 @@ public class XSSFDataProcessor implements DataProcessor
     @SuppressWarnings("unchecked")
     public <T> DataProvider<T> getDataProvider(Class<T> dataClass)
     {
-        if (dataClass == Document.class)
+        if (dataClass == String.class)
             return (DataProvider<T>) _dataProvider;
         else
             return null;
