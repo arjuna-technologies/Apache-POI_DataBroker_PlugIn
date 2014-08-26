@@ -60,29 +60,34 @@ public class XSSFDataProcessor implements DataProcessor
 
     private static class WorkbookHandler extends DefaultHandler
     {
-        private WorkbookHandler(SharedStringsTable sharedStringsTable)
+    	private static final String SHEET_NAME               = "sheet";
+    	private static final String SPREADSHEETML_NAMESPACE = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+
+    	private WorkbookHandler(SharedStringsTable sharedStringsTable)
         {
             _sharedStringsTable = sharedStringsTable;
             _content            = new StringBuffer();
         }
 
         @Override
-        public void startElement(String uri, String localName, String name, Attributes attributes)
+        public void startElement(String uri, String localName, String qName, Attributes attributes)
             throws SAXException
         {
-            System.out.print("start: " + uri + ", " + localName + ", " + name + "[");
-            for (int index = 0; index < attributes.getLength(); index++)
-                System.out.print("<name=" + attributes.getLocalName(index) + ", url=" + attributes.getURI(index)  + ", qname=" + attributes.getQName(index)+ ", value=" + attributes.getValue(index) + ">");
-            System.out.println("]");
+            if ((localName != null) && localName.equals(SHEET_NAME) && (uri != null) && uri.equals(SPREADSHEETML_NAMESPACE))
+            {
+                for (int index = 0; index < attributes.getLength(); index++)
+                    System.out.println("<LocalName=" + attributes.getLocalName(index) + ", URL=" + attributes.getURI(index)  + ", QName=" + attributes.getQName(index)+ ", Value=" + attributes.getValue(index) + ">");
+                System.out.println();
+            }
 
             _content = new StringBuffer();
         }
 
         @Override
-        public void endElement(String uri, String localName, String name)
+        public void endElement(String uri, String localName, String qName)
             throws SAXException
         {
-            System.out.println("end :" + name);
+            System.out.println("end :" + qName);
         }
 
         @Override
@@ -104,15 +109,15 @@ public class XSSFDataProcessor implements DataProcessor
         }
 
         @Override
-        public void startElement(String uri, String localName, String name, Attributes attributes)
+        public void startElement(String uri, String localName, String qName, Attributes attributes)
             throws SAXException
         {
-            System.out.print("start :" + name + "[");
+            System.out.print("start :" + qName + "[");
             for (int index = 0; index < attributes.getLength(); index++)
                 System.out.print("<qname=" + attributes.getQName(index) + ",type=" + attributes.getType(index) + ",value=" + attributes.getValue(index) + ">");
             System.out.println("]");
 
-            if (name.equals("c"))
+            if (qName.equals("c"))
             {
 //                 System.out.print(attributes.getValue("r") + " - ");
                  String cellType = attributes.getValue("t");
@@ -125,10 +130,10 @@ public class XSSFDataProcessor implements DataProcessor
         }
         
         @Override
-        public void endElement(String uri, String localName, String name)
+        public void endElement(String uri, String localName, String qName)
             throws SAXException
         {
-            System.out.println("end :" + name);
+            System.out.println("end :" + qName);
             if (_nextIsString)
             {
                 int index = Integer.parseInt(_lastContents);
@@ -165,10 +170,16 @@ public class XSSFDataProcessor implements DataProcessor
             workbookParser.setContentHandler(workbookHandler);
 
             InputStream    workbookInputStream = xssfReader.getWorkbookData();
-            InputSource    workbookSource      = new InputSource(workbookInputStream);
-            workbookParser.parse(workbookSource);
+            // InputSource    workbookSource      = new InputSource(workbookInputStream);
+            // workbookParser.parse(workbookSource);
+            int wbch = workbookInputStream.read();
+            while (wbch != -1)
+            {
+                System.out.print((char) wbch);
+                wbch = workbookInputStream.read();
+            }
             workbookInputStream.close();
-            
+
             XMLReader      sheetParser  = XMLReaderFactory.createXMLReader("org.apache.xerces.parsers.SAXParser");
             ContentHandler sheetHandler = new SheetHandler(sharedStringsTable);
             sheetParser.setContentHandler(sheetHandler);
@@ -177,15 +188,13 @@ public class XSSFDataProcessor implements DataProcessor
             while (sheetInputStreamIterator.hasNext())
             {
                 InputStream sheetInputStream = sheetInputStreamIterator.next();
-                /*
-                InputSource sheetSource = new InputSource(sheetInputStream);
-                parser.parse(sheetSource);
-                */
-                int ch = sheetInputStream.read();
-                while (ch != -1)
+                // InputSource sheetSource = new InputSource(sheetInputStream);
+                // parser.parse(sheetSource);
+                int sch = sheetInputStream.read();
+                while (sch != -1)
                 {
-                    System.out.print((char) ch);
-                    ch = sheetInputStream.read();
+                    System.out.print((char) sch);
+                    sch = sheetInputStream.read();
                 }
                 sheetInputStream.close();
             }
