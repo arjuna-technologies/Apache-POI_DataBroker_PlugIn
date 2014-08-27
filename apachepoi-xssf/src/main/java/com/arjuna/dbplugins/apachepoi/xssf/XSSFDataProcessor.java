@@ -8,16 +8,18 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xssf.eventusermodel.XSSFReader;
 import org.apache.poi.xssf.model.SharedStringsTable;
-import org.apache.poi.xssf.usermodel.XSSFRichTextString;
 import org.risbic.intraconnect.basic.BasicDataConsumer;
 import org.risbic.intraconnect.basic.BasicDataProvider;
 import org.xml.sax.Attributes;
@@ -58,126 +60,153 @@ public class XSSFDataProcessor implements DataProcessor
         return Collections.unmodifiableMap(_properties);
     }
 
-    private static class WorkbookHandler extends DefaultHandler
+    private class WorkbookHandler extends DefaultHandler
     {
-    	private static final String SHEET_NAME               = "sheet";
-    	private static final String SPREADSHEETML_NAMESPACE = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        private static final String SPREADSHEETML_NAMESPACE = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        private static final String RELATIONSHIPS_NAMESPACE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+        private static final String NONE_NAMESPACE          = "";
+        private static final String SHEET_TAGNAME           = "sheet";
+        private static final String NAME_ATTRNAME           = "name";
+        private static final String ID_ATTRNAME             = "id";
 
-    	private WorkbookHandler(SharedStringsTable sharedStringsTable)
+        public WorkbookHandler(Map<String, String> refIdMap)
         {
-            _sharedStringsTable = sharedStringsTable;
-            _content            = new StringBuffer();
+            _refIdMap = refIdMap;
         }
 
         @Override
         public void startElement(String uri, String localName, String qName, Attributes attributes)
             throws SAXException
         {
-            if ((localName != null) && localName.equals(SHEET_NAME) && (uri != null) && uri.equals(SPREADSHEETML_NAMESPACE))
+            if ((localName != null) && localName.equals(SHEET_TAGNAME) && (uri != null) && uri.equals(SPREADSHEETML_NAMESPACE))
             {
-                for (int index = 0; index < attributes.getLength(); index++)
-                    System.out.println("<LocalName=" + attributes.getLocalName(index) + ", URL=" + attributes.getURI(index)  + ", QName=" + attributes.getQName(index)+ ", Value=" + attributes.getValue(index) + ">");
-                System.out.println();
+                String name = attributes.getValue(NONE_NAMESPACE, NAME_ATTRNAME);
+                String id   = attributes.getValue(RELATIONSHIPS_NAMESPACE, ID_ATTRNAME);
+
+                if (name != null)
+                    _refIdMap.put(name, id);
             }
-
-            _content = new StringBuffer();
         }
 
-        @Override
-        public void endElement(String uri, String localName, String qName)
-            throws SAXException
-        {
-            System.out.println("end :" + qName);
-        }
-
-        @Override
-        public void characters(char[] characters, int start, int length)
-            throws SAXException
-        {
-            _content.append(characters, start, length);
-        }
-
-        private SharedStringsTable _sharedStringsTable;
-        private StringBuffer       _content;
+        private Map<String, String> _refIdMap;
     }
 
-    private static class SheetHandler extends DefaultHandler
+    private class SheetHandler extends DefaultHandler
     {
-        private SheetHandler(SharedStringsTable sharedStringsTable)
+        private static final String SPREADSHEETML_NAMESPACE = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        private static final String NONE_NAMESPACE          = "";
+        private static final String ROW_TAGNAME             = "row";
+        private static final String CELL_TAGNAME            = "c";
+        private static final String VALUE_TAGNAME           = "v";
+        private static final String REF_ATTRNAME            = "r";
+
+        public SheetHandler(SharedStringsTable sharedStringsTable)
         {
             _sharedStringsTable = sharedStringsTable;
+            _cellName           = null;
+            _value              = new StringBuffer();
+            _rowMap             = new LinkedHashMap<String, String>();
         }
 
         @Override
         public void startElement(String uri, String localName, String qName, Attributes attributes)
             throws SAXException
         {
-            System.out.print("start :" + qName + "[");
-            for (int index = 0; index < attributes.getLength(); index++)
-                System.out.print("<qname=" + attributes.getQName(index) + ",type=" + attributes.getType(index) + ",value=" + attributes.getValue(index) + ">");
-            System.out.println("]");
-
-            if (qName.equals("c"))
-            {
-//                 System.out.print(attributes.getValue("r") + " - ");
-                 String cellType = attributes.getValue("t");
-                 if (cellType != null && cellType.equals("s"))
-                     _nextIsString = true;
-                 else
-                     _nextIsString = false;
-            }
-            _lastContents = "";
+            if ((localName != null) && localName.equals(CELL_TAGNAME) && (uri != null) && uri.equals(SPREADSHEETML_NAMESPACE))
+                _cellName = attributes.getValue(NONE_NAMESPACE, REF_ATTRNAME);
+            else if ((localName != null) && localName.equals(VALUE_TAGNAME) && (uri != null) && uri.equals(SPREADSHEETML_NAMESPACE))
+                _value.setLength(0);
         }
-        
+
         @Override
         public void endElement(String uri, String localName, String qName)
             throws SAXException
         {
-            System.out.println("end :" + qName);
-            if (_nextIsString)
+            if ((localName != null) && localName.equals(VALUE_TAGNAME) && (uri != null) && uri.equals(SPREADSHEETML_NAMESPACE))
             {
-                int index = Integer.parseInt(_lastContents);
-                _lastContents = new XSSFRichTextString(_sharedStringsTable.getEntryAt(index)).toString();
-                _nextIsString = false;
+                _rowMap.put(_cellName, _value.toString());
+                _value.setLength(0);
             }
-
- //           if (name.equals("v"))
- //               System.out.println(_lastContents);
+            else if ((localName != null) && localName.equals(ROW_TAGNAME) && (uri != null) && uri.equals(SPREADSHEETML_NAMESPACE))
+            {
+                String rowJSON = rowMap2JSON(_rowMap);
+                if (logger.isLoggable(Level.FINER))
+                    logger.log(Level.FINER, "Row: [" + rowJSON + "]");
+                _dataProvider.produce(rowJSON);
+                _rowMap.clear();
+            }
         }
 
         @Override
         public void characters(char[] characters, int start, int length)
             throws SAXException
         {
-            _lastContents += new String(characters, start, length);
+            _value.append(characters, start, length);
         }
 
-        private SharedStringsTable _sharedStringsTable;
-        private String             _lastContents;
-        private boolean            _nextIsString;
+        private String rowMap2JSON(Map<String, String> rowMap)
+        {
+            StringBuffer json = new StringBuffer();
+
+            json.append("{");
+            boolean first = true;
+            for (Entry<String, String> row: rowMap.entrySet())
+            {
+                if (! first)
+                    json.append(",");
+                else
+                    first = false;
+
+                json.append("\"");
+                json.append(string2JSON(removeRowNumber(row.getKey())));
+                json.append("\"");
+                json.append(":");
+                json.append("\"");
+                json.append(string2JSON(row.getValue()));
+                json.append("\"");
+            }
+            json.append("}");
+
+            return json.toString();
+        }
+
+        private String removeRowNumber(String cellName)
+        {
+            int index = 0;
+            while ((index < cellName.length()) && Character.isAlphabetic(cellName.charAt(index)))
+                index++;
+
+            return cellName.substring(0, index);
+        }
+
+        private String string2JSON(String value)
+        {
+            return value.replaceAll("\\\\", "\\\\\\\\").replaceAll("\"", "\\\\\"");
+        }
+
+        private SharedStringsTable  _sharedStringsTable;
+        private String              _cellName;
+        private StringBuffer        _value;
+        private Map<String, String> _rowMap;
     }
 
     public void consume(File data)
     {
         try
         {
+            Map<String, String> refIdMap = new HashMap<String, String>();
+
             OPCPackage         opcPackage         = OPCPackage.open(data);
             XSSFReader         xssfReader         = new XSSFReader(opcPackage);
             SharedStringsTable sharedStringsTable = xssfReader.getSharedStringsTable();
 
-            XMLReader      workbookParser      = XMLReaderFactory.createXMLReader("org.apache.xerces.parsers.SAXParser");
-            ContentHandler workbookHandler     = new WorkbookHandler(sharedStringsTable);
+            XMLReader      workbookParser  = XMLReaderFactory.createXMLReader("org.apache.xerces.parsers.SAXParser");
+            ContentHandler workbookHandler = new WorkbookHandler(refIdMap);
             workbookParser.setContentHandler(workbookHandler);
 
-            InputStream    workbookInputStream = xssfReader.getWorkbookData();
-            // InputSource    workbookSource      = new InputSource(workbookInputStream);
-            // workbookParser.parse(workbookSource);
-            int wbch = workbookInputStream.read();
-            while (wbch != -1)
-            {
-                System.out.print((char) wbch);
-                wbch = workbookInputStream.read();
-            }
+            InputStream workbookInputStream = xssfReader.getWorkbookData();
+            InputSource workbookSource      = new InputSource(workbookInputStream);
+            workbookParser.parse(workbookSource);
             workbookInputStream.close();
 
             XMLReader      sheetParser  = XMLReaderFactory.createXMLReader("org.apache.xerces.parsers.SAXParser");
@@ -188,14 +217,8 @@ public class XSSFDataProcessor implements DataProcessor
             while (sheetInputStreamIterator.hasNext())
             {
                 InputStream sheetInputStream = sheetInputStreamIterator.next();
-                // InputSource sheetSource = new InputSource(sheetInputStream);
-                // parser.parse(sheetSource);
-                int sch = sheetInputStream.read();
-                while (sch != -1)
-                {
-                    System.out.print((char) sch);
-                    sch = sheetInputStream.read();
-                }
+                InputSource sheetSource = new InputSource(sheetInputStream);
+                sheetParser.parse(sheetSource);
                 sheetInputStream.close();
             }
         }
