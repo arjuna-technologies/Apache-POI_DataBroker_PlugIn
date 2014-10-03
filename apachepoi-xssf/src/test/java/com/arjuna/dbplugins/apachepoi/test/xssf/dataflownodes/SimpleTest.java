@@ -9,6 +9,8 @@ import java.util.Collections;
 import java.util.Map;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import com.arjuna.databroker.data.connector.ObserverDataConsumer;
+import com.arjuna.databroker.data.jee.DataFlowNodeLifeCycleControl;
 import com.arjuna.dbplugins.apachepoi.xssf.XSSFDataProcessor;
 
 public class SimpleTest
@@ -20,8 +22,10 @@ public class SimpleTest
     	Map<String, String> properties        = Collections.emptyMap();
         XSSFDataProcessor   xssfDataProcessor = new XSSFDataProcessor(name, properties);
 
+        DataFlowNodeLifeCycleControl.processCreatedDataFlowNode(xssfDataProcessor, null);
+        
         File file = new File("Test01.xlsx");
 
-        xssfDataProcessor.getDataConsumer(File.class).consume(null, file);
+        ((ObserverDataConsumer<File>) xssfDataProcessor.getDataConsumer(File.class)).consume(null, file);
     }
 }

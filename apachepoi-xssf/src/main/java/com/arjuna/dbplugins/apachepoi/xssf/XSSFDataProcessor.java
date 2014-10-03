@@ -20,8 +20,6 @@ import java.util.logging.Logger;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xssf.eventusermodel.XSSFReader;
 import org.apache.poi.xssf.model.SharedStringsTable;
-import org.risbic.intraconnect.basic.BasicDataConsumer;
-import org.risbic.intraconnect.basic.BasicDataProvider;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
@@ -30,8 +28,11 @@ import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 import org.xml.sax.helpers.XMLReaderFactory;
 import com.arjuna.databroker.data.DataConsumer;
+import com.arjuna.databroker.data.DataFlow;
 import com.arjuna.databroker.data.DataProcessor;
 import com.arjuna.databroker.data.DataProvider;
+import com.arjuna.databroker.data.jee.annotation.DataConsumerInjection;
+import com.arjuna.databroker.data.jee.annotation.DataProviderInjection;
 
 public class XSSFDataProcessor implements DataProcessor
 {
@@ -43,9 +44,6 @@ public class XSSFDataProcessor implements DataProcessor
 
         _name       = name;
         _properties = properties;
-
-        _dataConsumer = new BasicDataConsumer<File>(this, "consume", File.class);
-        _dataProvider = new BasicDataProvider<String>(this);
     }
 
     @Override
@@ -55,9 +53,33 @@ public class XSSFDataProcessor implements DataProcessor
     }
 
     @Override
+    public void setName(String name)
+    {
+        _name = name;
+    }
+
+    @Override
     public Map<String, String> getProperties()
     {
         return Collections.unmodifiableMap(_properties);
+    }
+
+    @Override
+    public void setProperties(Map<String, String> properties)
+    {
+        _properties = properties;
+    }
+    
+    @Override
+    public DataFlow getDataFlow()
+    {
+        return _dataFlow;
+    }
+
+    @Override
+    public void setDataFlow(DataFlow dataFlow)
+    {
+        _dataFlow = dataFlow;
     }
 
     private class WorkbookHandler extends DefaultHandler
@@ -270,6 +292,9 @@ public class XSSFDataProcessor implements DataProcessor
 
     private String               _name;
     private Map<String, String>  _properties;
+    private DataFlow             _dataFlow;
+    @DataConsumerInjection(methodName="consume")
     private DataConsumer<File>   _dataConsumer;
+    @DataProviderInjection
     private DataProvider<String> _dataProvider;
 }
