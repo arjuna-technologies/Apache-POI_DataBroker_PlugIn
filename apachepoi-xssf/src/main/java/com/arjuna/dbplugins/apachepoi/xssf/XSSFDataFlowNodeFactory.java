@@ -7,11 +7,9 @@ package com.arjuna.dbplugins.apachepoi.xssf;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
 import com.arjuna.databroker.data.DataFlowNode;
 import com.arjuna.databroker.data.DataFlowNodeFactory;
 import com.arjuna.databroker.data.DataProcessor;
-import com.arjuna.databroker.data.DataService;
 import com.arjuna.databroker.data.InvalidClassException;
 import com.arjuna.databroker.data.InvalidMetaPropertyException;
 import com.arjuna.databroker.data.InvalidNameException;
@@ -87,7 +85,7 @@ public class XSSFDataFlowNodeFactory implements DataFlowNodeFactory
     public <T extends DataFlowNode> T createDataFlowNode(String name, Class<T> dataFlowNodeClass, Map<String, String> metaProperties, Map<String, String> properties)
         throws InvalidClassException, InvalidNameException, InvalidMetaPropertyException, MissingMetaPropertyException, InvalidPropertyException, MissingPropertyException
     {
-        if (dataFlowNodeClass.equals(DataService.class))
+        if (dataFlowNodeClass.equals(DataProcessor.class))
         {
             if (! metaProperties.isEmpty())
                 return (T) new XSSFDataProcessor(name, properties);
