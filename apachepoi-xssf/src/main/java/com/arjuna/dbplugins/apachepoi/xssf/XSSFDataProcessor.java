@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Arjuna Technologies Limited, Newcastle-upon-Tyne, England. All rights reserved.
+ * Copyright (c) 2014-2015, Arjuna Technologies Limited, Newcastle-upon-Tyne, England. All rights reserved.
  */
 
 package com.arjuna.dbplugins.apachepoi.xssf;
@@ -37,6 +37,11 @@ import com.arjuna.databroker.data.jee.annotation.DataProviderInjection;
 public class XSSFDataProcessor implements DataProcessor
 {
     private static final Logger logger = Logger.getLogger(XSSFDataProcessor.class.getName());
+
+    public XSSFDataProcessor()
+    {
+        logger.log(Level.FINE, "XSSFDataProcessor");
+    }
 
     public XSSFDataProcessor(String name, Map<String, String> properties)
     {

@@ -6,7 +6,7 @@ Apache POI DataBroker PlugIn which uses the Apache POI from http://poi.apache.or
 License
 =======
 
-Copyright (c) 2014, Arjuna Technologies Limited, Newcastle-upon-Tyne, England.
+Copyright (c) 2014-2015, Arjuna Technologies Limited, Newcastle-upon-Tyne, England.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
