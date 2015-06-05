@@ -17,6 +17,7 @@
 
     <properties>
         <version.com.arjuna.databroker>1.0.0p1m3l</version.com.arjuna.databroker>
+        <version.org.apache.poi>3.10.1</version.org.apache.poi>
 
         <jboss-as.username>username</jboss-as.username>
         <jboss-as.password>password</jboss-as.password>
@@ -33,16 +34,16 @@
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <!-- JBossAS-7.1.1.Final
+        <!-- JBossAS-7.1.1.Final -->
         <servlet-api.version>3.0</servlet-api.version>
         <ejb-api.version>3.1</ejb-api.version>
         <jee.version>6</jee.version>
-        -->
-        <!-- WildFly-8.1.0.Final -->
+        <!-- -->
+        <!-- WildFly-8.1.0.Final
         <servlet-api.version>3.1</servlet-api.version>
         <ejb-api.version>3.2</ejb-api.version>
         <jee.version>7</jee.version>
-        <!--  -->
+        -->
     </properties>
 
     <modules>
@@ -60,7 +61,7 @@
 
     <dependencyManagement>
         <dependencies>
-             <!-- JBossAS-7.1.1.Final
+             <!-- JBossAS-7.1.1.Final -->
             <dependency>
                 <groupId>org.jboss.as</groupId>
                 <artifactId>jboss-as-dist</artifactId>
@@ -68,8 +69,8 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            -->
-            <!-- WildFly-8.1.0.Final -->
+            <!-- -->
+            <!-- WildFly-8.1.0.Final
             <dependency>
                 <groupId>org.wildfly</groupId>
                 <artifactId>wildfly-dist</artifactId>
@@ -77,6 +78,7 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            -->
         </dependencies>
     </dependencyManagement>
 
