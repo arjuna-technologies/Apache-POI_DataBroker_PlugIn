@@ -58,27 +58,27 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-           <groupId>com.arjuna.databroker</groupId>
+            <groupId>com.arjuna.databroker</groupId>
             <artifactId>data-core</artifactId>
             <version>${version.com.arjuna.databroker}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-           <groupId>com.arjuna.databroker</groupId>
+            <groupId>com.arjuna.databroker</groupId>
             <artifactId>data-core-jee</artifactId>
             <version>${version.com.arjuna.databroker}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.arjuna.dbutilities.testsupport</groupId>
+            <groupId>com.arjuna.dbutils.testsupport</groupId>
             <artifactId>dataflownodes-dummy</artifactId>
-            <version>1.0.0p1m1</version>
+            <version>1.0.0p2m1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.arjuna.dbutilities.testsupport</groupId>
+            <groupId>com.arjuna.dbutils.testsupport</groupId>
             <artifactId>dataflownodes-lifecycle</artifactId>
-            <version>1.0.0p1m1</version>
+            <version>1.0.0p2m1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
