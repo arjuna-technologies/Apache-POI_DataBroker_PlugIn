@@ -12,7 +12,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import com.arjuna.databroker.data.connector.ObserverDataConsumer;
 import com.arjuna.databroker.data.core.DataFlowNodeLifeCycleControl;
-import com.arjuna.dbplugins.apachepoi.xssf.XSSFDataProcessor;
+import com.arjuna.dbplugins.apachepoi.xssf.XSSFRowToJSONDataProcessor;
 import com.arjuna.dbutils.testsupport.dataflownodes.lifecycle.TestJEEDataFlowNodeLifeCycleControl;
 
 public class SimpleTest
@@ -21,17 +21,17 @@ public class SimpleTest
     public void simpleInvocation()
     {
     	DataFlowNodeLifeCycleControl dataFlowNodeLifeCycleControl = new TestJEEDataFlowNodeLifeCycleControl();
-    	
-    	String              name              = "XSSF Data Processor";
-    	Map<String, String> properties        = Collections.emptyMap();
-        XSSFDataProcessor   xssfDataProcessor = new XSSFDataProcessor(name, properties);
 
-        dataFlowNodeLifeCycleControl.completeCreationAndActivateDataFlowNode(UUID.randomUUID().toString(), xssfDataProcessor, null);
-        
+    	String                     name                       = "XSSF Row To JSON Data Processor";
+    	Map<String, String>        properties                 = Collections.emptyMap();
+        XSSFRowToJSONDataProcessor xssfRowToJSONDataProcessor = new XSSFRowToJSONDataProcessor(name, properties);
+
+        dataFlowNodeLifeCycleControl.completeCreationAndActivateDataFlowNode(UUID.randomUUID().toString(), xssfRowToJSONDataProcessor, null);
+
         File file = new File("Test01.xlsx");
 
-        ((ObserverDataConsumer<File>) xssfDataProcessor.getDataConsumer(File.class)).consume(null, file);
-        
-        dataFlowNodeLifeCycleControl.removeDataFlowNode(xssfDataProcessor);
+        ((ObserverDataConsumer<File>) xssfRowToJSONDataProcessor.getDataConsumer(File.class)).consume(null, file);
+
+        dataFlowNodeLifeCycleControl.removeDataFlowNode(xssfRowToJSONDataProcessor);
     }
 }

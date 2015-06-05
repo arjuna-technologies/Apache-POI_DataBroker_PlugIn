@@ -34,16 +34,16 @@ import com.arjuna.databroker.data.DataProvider;
 import com.arjuna.databroker.data.jee.annotation.DataConsumerInjection;
 import com.arjuna.databroker.data.jee.annotation.DataProviderInjection;
 
-public class XSSFDataProcessor implements DataProcessor
+public class XSSFRowToJSONDataProcessor implements DataProcessor
 {
-    private static final Logger logger = Logger.getLogger(XSSFDataProcessor.class.getName());
+    private static final Logger logger = Logger.getLogger(XSSFRowToJSONDataProcessor.class.getName());
 
-    public XSSFDataProcessor()
+    public XSSFRowToJSONDataProcessor()
     {
         logger.log(Level.FINE, "XSSFDataProcessor");
     }
 
-    public XSSFDataProcessor(String name, Map<String, String> properties)
+    public XSSFRowToJSONDataProcessor(String name, Map<String, String> properties)
     {
         logger.log(Level.FINE, "XSSFDataProcessor: " + name + ", " + properties);
 

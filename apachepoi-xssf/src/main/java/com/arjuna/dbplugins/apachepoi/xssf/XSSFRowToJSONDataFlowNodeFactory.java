@@ -17,9 +17,9 @@ import com.arjuna.databroker.data.InvalidPropertyException;
 import com.arjuna.databroker.data.MissingMetaPropertyException;
 import com.arjuna.databroker.data.MissingPropertyException;
 
-public class XSSFDataFlowNodeFactory implements DataFlowNodeFactory
+public class XSSFRowToJSONDataFlowNodeFactory implements DataFlowNodeFactory
 {
-    public XSSFDataFlowNodeFactory(String name, Map<String, String> properties)
+    public XSSFRowToJSONDataFlowNodeFactory(String name, Map<String, String> properties)
     {
         _name       = name;
         _properties = properties;
@@ -88,7 +88,7 @@ public class XSSFDataFlowNodeFactory implements DataFlowNodeFactory
         if (dataFlowNodeClass.equals(DataProcessor.class))
         {
             if (! metaProperties.isEmpty())
-                return (T) new XSSFDataProcessor(name, properties);
+                return (T) new XSSFRowToJSONDataProcessor(name, properties);
             else
                 throw new InvalidMetaPropertyException("No metaproperties expected", null, null);
         }

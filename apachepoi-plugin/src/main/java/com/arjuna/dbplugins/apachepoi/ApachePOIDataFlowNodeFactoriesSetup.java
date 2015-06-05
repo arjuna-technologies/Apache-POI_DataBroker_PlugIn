@@ -13,7 +13,7 @@ import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import com.arjuna.databroker.data.DataFlowNodeFactory;
 import com.arjuna.databroker.data.DataFlowNodeFactoryInventory;
-import com.arjuna.dbplugins.apachepoi.xssf.XSSFDataFlowNodeFactory;
+import com.arjuna.dbplugins.apachepoi.xssf.XSSFRowToJSONDataFlowNodeFactory;
 
 @Startup
 @Singleton
@@ -22,15 +22,15 @@ public class ApachePOIDataFlowNodeFactoriesSetup
     @PostConstruct
     public void setup()
     {
-        DataFlowNodeFactory xmlFeedDataFlowNodeFactory = new XSSFDataFlowNodeFactory("Apache POI XSSF Data Flow Node Factories", Collections.<String, String>emptyMap());
+        DataFlowNodeFactory xssfRowToJSONDataFlowNodeFactory = new XSSFRowToJSONDataFlowNodeFactory("Apache POI XSSF Row To JSON Data Flow Node Factories", Collections.<String, String>emptyMap());
 
-        _dataFlowNodeFactoryInventory.addDataFlowNodeFactory(xmlFeedDataFlowNodeFactory);
+        _dataFlowNodeFactoryInventory.addDataFlowNodeFactory(xssfRowToJSONDataFlowNodeFactory);
     }
 
     @PreDestroy
     public void cleanup()
     {
-        _dataFlowNodeFactoryInventory.removeDataFlowNodeFactory("Apache POI XSSF Data Flow Node Factories");
+        _dataFlowNodeFactoryInventory.removeDataFlowNodeFactory("Apache POI XSSF Row To JSON Data Flow Node Factories");
     }
 
     @EJB(lookup="java:global/databroker/data-core-jee/DataFlowNodeFactoryInventory")
