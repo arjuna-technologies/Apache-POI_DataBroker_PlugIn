@@ -40,12 +40,12 @@ public class XSSFRowToJSONDataProcessor implements DataProcessor
 
     public XSSFRowToJSONDataProcessor()
     {
-        logger.log(Level.FINE, "XSSFDataProcessor");
+        logger.log(Level.FINE, "XSSFRowToJSONDataProcessor");
     }
 
     public XSSFRowToJSONDataProcessor(String name, Map<String, String> properties)
     {
-        logger.log(Level.FINE, "XSSFDataProcessor: " + name + ", " + properties);
+        logger.log(Level.FINE, "XSSFRowToJSONDataProcessor: " + name + ", " + properties);
 
         _name       = name;
         _properties = properties;
