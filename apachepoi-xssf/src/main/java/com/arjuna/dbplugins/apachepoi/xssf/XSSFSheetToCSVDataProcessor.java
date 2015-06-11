@@ -4,29 +4,16 @@
 
 package com.arjuna.dbplugins.apachepoi.xssf;
 
-import java.io.File;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.poi.openxml4j.opc.OPCPackage;
-import org.apache.poi.xssf.eventusermodel.XSSFReader;
-import org.apache.poi.xssf.model.SharedStringsTable;
-import org.xml.sax.Attributes;
-import org.xml.sax.ContentHandler;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
-import org.xml.sax.helpers.DefaultHandler;
-import org.xml.sax.helpers.XMLReaderFactory;
+
 import com.arjuna.databroker.data.DataConsumer;
 import com.arjuna.databroker.data.DataFlow;
 import com.arjuna.databroker.data.DataProcessor;
@@ -40,12 +27,12 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
 
     public XSSFSheetToCSVDataProcessor()
     {
-        logger.log(Level.FINE, "XSSFRowToJSONDataProcessor");
+        logger.log(Level.FINE, "XSSFSheetToCSVDataProcessor");
     }
 
     public XSSFSheetToCSVDataProcessor(String name, Map<String, String> properties)
     {
-        logger.log(Level.FINE, "XSSFRowToJSONDataProcessor: " + name + ", " + properties);
+        logger.log(Level.FINE, "XSSFSheetToCSVDataProcessor: " + name + ", " + properties);
 
         _name       = name;
         _properties = properties;
@@ -74,7 +61,7 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
     {
         _properties = properties;
     }
-    
+
     @Override
     public DataFlow getDataFlow()
     {
@@ -91,10 +78,23 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
     {
         try
         {
-        	Object filename = data.get("filename");
-            if ((filename != null) && (filename instanceof String))
-                data.put("resourcename", filename);
-            data.put("resourceformat", "xlsx");
+            logger.log(Level.FINE, "Generate CSV for XSSF");
+
+            try
+            {
+                String      filename                = (String) data.get("filename");
+                InputStream xssfWorkbookInputStream = new ByteArrayInputStream((byte[]) data.get("data"));
+
+//                String csv = generateXSSFSpeadsheetMetadata(baseRDFURI, xssfWorkbookInputStream, filename, location);
+//                xssfWorkbookInputStream.close();
+//                data.put("resourceformat", "xlsx");
+
+            }
+            catch (Throwable throwable)
+            {
+                logger.log(Level.WARNING, "Problem Generating during XSSF Speadsheet Metadata Scan (File)", throwable);
+
+            }
         }
         catch (Throwable throwable)
         {
