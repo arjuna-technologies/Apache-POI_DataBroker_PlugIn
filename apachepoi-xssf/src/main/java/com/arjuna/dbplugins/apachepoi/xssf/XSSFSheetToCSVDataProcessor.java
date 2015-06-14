@@ -85,10 +85,16 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
                 String      filename                = (String) data.get("filename");
                 InputStream xssfWorkbookInputStream = new ByteArrayInputStream((byte[]) data.get("data"));
 
-//                String csv = generateXSSFSpeadsheetMetadata(baseRDFURI, xssfWorkbookInputStream, filename, location);
-//                xssfWorkbookInputStream.close();
-//                data.put("resourceformat", "xlsx");
+                XSSFWorkbook xssfWorkbook = new XSSFWorkbook(xssfWorkbookInputStream);
 
+                for (int sheetIndex = 0; sheetIndex < xssfWorkbook.getNumberOfSheets(); sheetIndex++)
+                {
+                    String csv = generateCSVFromSheet(xssfWorkbook.getSheet(sheetIndex));
+
+                    data.put("resourceformat", "csv");
+                    data.put("data", csv);
+                }
+                xssfWorkbookInputStream.close();
             }
             catch (Throwable throwable)
             {
@@ -140,6 +146,16 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
             return (DataProvider<T>) _dataProvider;
         else
             return null;
+    }
+
+    private String generateCSVFromSheet(XSSFWorkbook xssfWorkbook)
+    {
+        StringBuffer csvText = new StringBuffer();
+
+        boolean firstItem = true;
+        for (int sheetIndex = 0; sheetIndex < xssfWorkbook.getNumberOfSheets(); sheetIndex++)
+        {
+        }
     }
 
     private String              _name;
