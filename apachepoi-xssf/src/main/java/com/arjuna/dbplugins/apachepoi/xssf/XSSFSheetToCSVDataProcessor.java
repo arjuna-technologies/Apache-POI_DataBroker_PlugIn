@@ -13,7 +13,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import com.arjuna.databroker.data.DataConsumer;
 import com.arjuna.databroker.data.DataFlow;
 import com.arjuna.databroker.data.DataProcessor;
@@ -89,7 +90,7 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
 
                 for (int sheetIndex = 0; sheetIndex < xssfWorkbook.getNumberOfSheets(); sheetIndex++)
                 {
-                    String csv = generateCSVFromSheet(xssfWorkbook.getSheet(sheetIndex));
+                    String csv = generateCSVFromSheet(xssfWorkbook.getSheetAt(sheetIndex));
 
                     data.put("resourceformat", "csv");
                     data.put("data", csv);
@@ -148,14 +149,15 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
             return null;
     }
 
-    private String generateCSVFromSheet(XSSFWorkbook xssfWorkbook)
+    private String generateCSVFromSheet(XSSFSheet xssfSheet)
     {
         StringBuffer csvText = new StringBuffer();
 
-        boolean firstItem = true;
-        for (int sheetIndex = 0; sheetIndex < xssfWorkbook.getNumberOfSheets(); sheetIndex++)
+        for (int rowIndex = xssfSheet.getFirstRowNum(); rowIndex < xssfSheet.getLastRowNum(); rowIndex++)
         {
         }
+
+        return csvText.toString();
     }
 
     private String              _name;

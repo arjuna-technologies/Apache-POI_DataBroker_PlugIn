@@ -20,10 +20,10 @@ public class SimpleTest
     @Test
     public void simpleInvocation()
     {
-    	DataFlowNodeLifeCycleControl dataFlowNodeLifeCycleControl = new TestJEEDataFlowNodeLifeCycleControl();
+        DataFlowNodeLifeCycleControl dataFlowNodeLifeCycleControl = new TestJEEDataFlowNodeLifeCycleControl();
 
-    	String                     name                       = "XSSF Row To JSON Data Processor";
-    	Map<String, String>        properties                 = Collections.emptyMap();
+        String                     name                       = "XSSF Row To JSON Data Processor";
+        Map<String, String>        properties                 = Collections.emptyMap();
         XSSFRowToJSONDataProcessor xssfRowToJSONDataProcessor = new XSSFRowToJSONDataProcessor(name, properties);
 
         dataFlowNodeLifeCycleControl.completeCreationAndActivateDataFlowNode(UUID.randomUUID().toString(), xssfRowToJSONDataProcessor, null);
