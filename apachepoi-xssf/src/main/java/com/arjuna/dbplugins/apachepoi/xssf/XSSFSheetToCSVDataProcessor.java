@@ -9,10 +9,13 @@ import java.io.InputStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import com.arjuna.databroker.data.DataConsumer;
@@ -84,6 +87,7 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
             try
             {
                 String      filename                = (String) data.get("filename");
+                String      baseFilename            = filename.substring(0, filename.lastIndexOf('.'));
                 InputStream xssfWorkbookInputStream = new ByteArrayInputStream((byte[]) data.get("data"));
 
                 XSSFWorkbook xssfWorkbook = new XSSFWorkbook(xssfWorkbookInputStream);
@@ -92,15 +96,21 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
                 {
                     String csv = generateCSVFromSheet(xssfWorkbook.getSheetAt(sheetIndex));
 
-                    data.put("resourceformat", "csv");
-                    data.put("data", csv);
+                    Map csvData = new HashMap();
+                    if (xssfWorkbook.getNumberOfSheets() == 0)
+                        csvData.put("filename", baseFilename + ".csv");
+                    else
+                        csvData.put("filename", baseFilename + "_" + xssfWorkbook.getSheetName(sheetIndex) + ".csv");
+                    csvData.put("resourceformat", "csv");
+                    csvData.put("data", csv);
+
+                    _dataProvider.produce(csvData);
                 }
                 xssfWorkbookInputStream.close();
             }
             catch (Throwable throwable)
             {
                 logger.log(Level.WARNING, "Problem Generating during XSSF Speadsheet Metadata Scan (File)", throwable);
-
             }
         }
         catch (Throwable throwable)
@@ -155,9 +165,26 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
 
         for (int rowIndex = xssfSheet.getFirstRowNum(); rowIndex < xssfSheet.getLastRowNum(); rowIndex++)
         {
+            XSSFRow row = xssfSheet.getRow(rowIndex);
+
+            boolean firstCell = true;
+            for (int columnIndex = 0; columnIndex < row.getPhysicalNumberOfCells() + row.getFirstCellNum(); columnIndex++)
+            {
+                if (firstCell)
+                    firstCell = false;
+                else
+                    csvText.append(',');
+
+                csvText.append(generateCSVFromCell(row.getCell(columnIndex)));
+            }
         }
 
         return csvText.toString();
+    }
+
+    private String generateCSVFromCell(XSSFCell xssfCell)
+    {
+        return xssfCell.getStringCellValue();
     }
 
     private String              _name;

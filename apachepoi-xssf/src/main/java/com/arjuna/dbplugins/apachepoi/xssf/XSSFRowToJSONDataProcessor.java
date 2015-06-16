@@ -74,7 +74,7 @@ public class XSSFRowToJSONDataProcessor implements DataProcessor
     {
         _properties = properties;
     }
-    
+
     @Override
     public DataFlow getDataFlow()
     {

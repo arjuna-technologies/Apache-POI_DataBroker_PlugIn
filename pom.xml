@@ -47,7 +47,7 @@
     </properties>
 
     <modules>
-        <module>apachepoi-xssf</module> 
+        <module>apachepoi-xssf</module>
         <module>apachepoi-plugin</module>
         <module>apachepoi-plugin-ear</module>
     </modules>
