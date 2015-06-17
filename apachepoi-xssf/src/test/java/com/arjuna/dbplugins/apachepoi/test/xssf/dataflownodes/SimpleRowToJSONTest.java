@@ -15,7 +15,7 @@ import com.arjuna.databroker.data.core.DataFlowNodeLifeCycleControl;
 import com.arjuna.dbplugins.apachepoi.xssf.XSSFRowToJSONDataProcessor;
 import com.arjuna.dbutils.testsupport.dataflownodes.lifecycle.TestJEEDataFlowNodeLifeCycleControl;
 
-public class SimpleTest
+public class SimpleRowToJSONTest
 {
     @Test
     public void simpleInvocation()
