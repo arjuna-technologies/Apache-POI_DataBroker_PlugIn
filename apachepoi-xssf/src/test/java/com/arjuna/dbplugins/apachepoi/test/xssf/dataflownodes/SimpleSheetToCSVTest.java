@@ -5,6 +5,9 @@
 package com.arjuna.dbplugins.apachepoi.test.xssf.dataflownodes;
 
 import java.io.File;
+import java.io.InputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.HashMap;
@@ -21,18 +24,40 @@ public class SimpleSheetToCSVTest
     @Test
     public void simpleInvocation()
     {
-        DataFlowNodeLifeCycleControl dataFlowNodeLifeCycleControl = new TestJEEDataFlowNodeLifeCycleControl();
+        try
+        {
+            File         spreadsheetFile        = new File("Test01.xlsx");
+            byte[]       spreadsheetData        = new byte[(int) spreadsheetFile.length()];
+            InputStream  spreadsheetInputStream = new FileInputStream(spreadsheetFile);
+            int          character              = spreadsheetInputStream.read();
+            int          index                  = 0;
+            while (character != -1)
+            {
+                spreadsheetData[index] = (byte) character;
+                character = spreadsheetInputStream.read();
+                index++;
+            }
+            spreadsheetInputStream.close();
 
-        String                      name                        = "XSSF Sheet To CSV Data Processor";
-        Map<String, String>         properties                  = Collections.emptyMap();
-        XSSFSheetToCSVDataProcessor xssfSheetToCSVDataProcessor = new XSSFSheetToCSVDataProcessor(name, properties);
+            DataFlowNodeLifeCycleControl dataFlowNodeLifeCycleControl = new TestJEEDataFlowNodeLifeCycleControl();
 
-        dataFlowNodeLifeCycleControl.completeCreationAndActivateDataFlowNode(UUID.randomUUID().toString(), xssfSheetToCSVDataProcessor, null);
+            String                      name                        = "XSSF Sheet To CSV Data Processor";
+            Map<String, String>         properties                  = Collections.emptyMap();
+            XSSFSheetToCSVDataProcessor xssfSheetToCSVDataProcessor = new XSSFSheetToCSVDataProcessor(name, properties);
 
-        Map map = new HashMap();
+            dataFlowNodeLifeCycleControl.completeCreationAndActivateDataFlowNode(UUID.randomUUID().toString(), xssfSheetToCSVDataProcessor, null);
 
-        ((ObserverDataConsumer<Map>) xssfSheetToCSVDataProcessor.getDataConsumer(Map.class)).consume(null, map);
+            Map map = new HashMap();
+            map.put("filename", "Test.xslx");
+            map.put("data", spreadsheetData);
 
-        dataFlowNodeLifeCycleControl.removeDataFlowNode(xssfSheetToCSVDataProcessor);
+            ((ObserverDataConsumer<Map>) xssfSheetToCSVDataProcessor.getDataConsumer(Map.class)).consume(null, map);
+
+            dataFlowNodeLifeCycleControl.removeDataFlowNode(xssfSheetToCSVDataProcessor);
+        }
+        catch (IOException ioException)
+        {
+            fail("IO Exception");
+        }
     }
 }
