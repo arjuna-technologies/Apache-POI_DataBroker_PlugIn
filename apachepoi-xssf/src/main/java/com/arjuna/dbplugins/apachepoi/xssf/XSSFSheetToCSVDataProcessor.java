@@ -14,7 +14,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellValue;
+import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -27,7 +29,7 @@ import com.arjuna.databroker.data.jee.annotation.DataProviderInjection;
 
 public class XSSFSheetToCSVDataProcessor implements DataProcessor
 {
-    private static final Logger logger = Logger.getLogger(XSSFRowToJSONDataProcessor.class.getName());
+    private static final Logger logger = Logger.getLogger(XSSFSheetToCSVDataProcessor.class.getName());
 
     public XSSFSheetToCSVDataProcessor()
     {
@@ -78,6 +80,7 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
         _dataFlow = dataFlow;
     }
 
+    @SuppressWarnings("rawtypes")
     public void consume(Map data)
     {
         try
@@ -94,9 +97,9 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
 
                 for (int sheetIndex = 0; sheetIndex < xssfWorkbook.getNumberOfSheets(); sheetIndex++)
                 {
-                    String csv = generateCSVFromSheet(xssfWorkbook.getSheetAt(sheetIndex));
+                    String csv = generateCSVFromSheet(xssfWorkbook.getSheetAt(sheetIndex), xssfWorkbook.getCreationHelper().createFormulaEvaluator());
 
-                    Map csvData = new HashMap();
+                    Map<String, String> csvData = new HashMap<String, String>();
                     if (xssfWorkbook.getNumberOfSheets() == 0)
                         csvData.put("filename", baseFilename + ".csv");
                     else
@@ -107,6 +110,8 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
                     _dataProvider.produce(csvData);
                 }
                 xssfWorkbookInputStream.close();
+
+                xssfWorkbook.close();
             }
             catch (Throwable throwable)
             {
@@ -159,7 +164,7 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
             return null;
     }
 
-    private String generateCSVFromSheet(XSSFSheet xssfSheet)
+    private String generateCSVFromSheet(XSSFSheet xssfSheet, FormulaEvaluator evaluator)
     {
         StringBuffer csvText = new StringBuffer();
 
@@ -175,23 +180,39 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
                 else
                     csvText.append(',');
 
-                csvText.append(generateCSVFromCell(row.getCell(columnIndex)));
+                csvText.append(generateCSVFromCell(row.getCell(columnIndex), evaluator));
             }
         }
 
         return csvText.toString();
     }
 
-    private String generateCSVFromCell(XSSFCell xssfCell)
+    private String generateCSVFromCell(Cell cell, FormulaEvaluator evaluator)
     {
-        return xssfCell.getStringCellValue();
+        CellValue cellValue = evaluator.evaluate(cell);
+
+        if (cellValue.getCellType() == Cell.CELL_TYPE_STRING)
+            return cellValue.getStringValue();
+        else if (cellValue.getCellType() == Cell.CELL_TYPE_NUMERIC)
+            return Double.toString(cellValue.getNumberValue());
+        else if (cellValue.getCellType() == Cell.CELL_TYPE_BOOLEAN)
+            return Boolean.toString(cellValue.getBooleanValue());
+        else if (cellValue.getCellType() == Cell.CELL_TYPE_BLANK)
+            return "";
+        else
+        {
+            logger.log(Level.WARNING, "Problem process cell: Unknown Cell Type = " + cell.getCellType());
+            return "";
+        }
     }
 
     private String              _name;
     private Map<String, String> _properties;
     private DataFlow            _dataFlow;
+    @SuppressWarnings("rawtypes")
     @DataConsumerInjection(methodName="consume")
     private DataConsumer<Map>   _dataConsumer;
+    @SuppressWarnings("rawtypes")
     @DataProviderInjection
     private DataProvider<Map>   _dataProvider;
 }

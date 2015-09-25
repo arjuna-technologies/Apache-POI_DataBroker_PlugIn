@@ -9,7 +9,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import com.arjuna.databroker.data.connector.ObserverDataConsumer;
 import com.arjuna.databroker.data.core.DataFlowNodeLifeCycleControl;
 import com.arjuna.dbplugins.apachepoi.xssf.XSSFRowToJSONDataProcessor;

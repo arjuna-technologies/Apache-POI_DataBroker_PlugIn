@@ -21,6 +21,7 @@ import com.arjuna.dbutils.testsupport.dataflownodes.lifecycle.TestJEEDataFlowNod
 
 public class SimpleSheetToCSVTest
 {
+    @SuppressWarnings("rawtypes")
     @Test
     public void simpleInvocation()
     {
@@ -47,7 +48,7 @@ public class SimpleSheetToCSVTest
 
             dataFlowNodeLifeCycleControl.completeCreationAndActivateDataFlowNode(UUID.randomUUID().toString(), xssfSheetToCSVDataProcessor, null);
 
-            Map map = new HashMap();
+            Map<String, Object> map = new HashMap<String, Object>();
             map.put("filename", "Test.xslx");
             map.put("data", spreadsheetData);
 
