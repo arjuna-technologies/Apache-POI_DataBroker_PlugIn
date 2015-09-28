@@ -26,6 +26,7 @@ import com.arjuna.databroker.data.DataProcessor;
 import com.arjuna.databroker.data.DataProvider;
 import com.arjuna.databroker.data.jee.annotation.DataConsumerInjection;
 import com.arjuna.databroker.data.jee.annotation.DataProviderInjection;
+import static org.apache.commons.lang3.StringEscapeUtils.escapeCsv;
 
 public class XSSFSheetToCSVDataProcessor implements DataProcessor
 {
@@ -85,15 +86,19 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
     {
         try
         {
-            logger.log(Level.FINE, "Generate CSV for XSSF");
+            logger.log(Level.FINE, "Generate CSV from XSSF");
 
             try
             {
-                String      filename                = (String) data.get("filename");
-                String      baseFilename            = filename.substring(0, filename.lastIndexOf('.'));
-                InputStream xssfWorkbookInputStream = new ByteArrayInputStream((byte[]) data.get("data"));
+                String filename     = (String) data.get("filename");
+                String baseFilename = null;
+                if (filename != null)
+                    filename.substring(0, filename.lastIndexOf('.'));
+                else
+                    baseFilename = "file";
 
-                XSSFWorkbook xssfWorkbook = new XSSFWorkbook(xssfWorkbookInputStream);
+                InputStream  xssfWorkbookInputStream = new ByteArrayInputStream((byte[]) data.get("data"));
+                XSSFWorkbook xssfWorkbook            = new XSSFWorkbook(xssfWorkbookInputStream);
 
                 for (int sheetIndex = 0; sheetIndex < xssfWorkbook.getNumberOfSheets(); sheetIndex++)
                 {
@@ -115,12 +120,12 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
             }
             catch (Throwable throwable)
             {
-                logger.log(Level.WARNING, "Problem Generating during XSSF Speadsheet Metadata Scan (File)", throwable);
+                logger.log(Level.WARNING, "Problem Generating CSV from XSSF (Map)", throwable);
             }
         }
         catch (Throwable throwable)
         {
-            logger.log(Level.WARNING, "Problem processing XSSF", throwable);
+            logger.log(Level.WARNING, "Problem Generating CSV from XSSF (Map)", throwable);
         }
     }
 
@@ -168,40 +173,69 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
     {
         StringBuffer csvText = new StringBuffer();
 
-        for (int rowIndex = xssfSheet.getFirstRowNum(); rowIndex < xssfSheet.getLastRowNum(); rowIndex++)
+        int firstCellNumber = Integer.MAX_VALUE;
+        int lastCellNumber  = Integer.MIN_VALUE;
+        for (int rowIndex = xssfSheet.getFirstRowNum(); rowIndex <= xssfSheet.getLastRowNum(); rowIndex++)
         {
             XSSFRow row = xssfSheet.getRow(rowIndex);
 
-            boolean firstCell = true;
-            for (int columnIndex = 0; columnIndex < row.getPhysicalNumberOfCells() + row.getFirstCellNum(); columnIndex++)
-            {
-                if (firstCell)
-                    firstCell = false;
-                else
-                    csvText.append(',');
+            if ((row.getFirstCellNum() >= 0) && (row.getFirstCellNum() < firstCellNumber))
+                firstCellNumber = row.getFirstCellNum();
 
-                csvText.append(generateCSVFromCell(row.getCell(columnIndex), evaluator));
-            }
+            if ((row.getLastCellNum() >= 0) &&(row.getLastCellNum() > lastCellNumber))
+                lastCellNumber = row.getLastCellNum();
         }
+
+        if ((firstCellNumber != Integer.MAX_VALUE) && (lastCellNumber != Integer.MIN_VALUE))
+            for (int rowIndex = xssfSheet.getFirstRowNum(); rowIndex <= xssfSheet.getLastRowNum(); rowIndex++)
+            {
+                XSSFRow row = xssfSheet.getRow(rowIndex);
+
+                boolean firstCell = true;
+                for (int columnIndex = firstCellNumber; columnIndex <= lastCellNumber; columnIndex++)
+                {
+                    if (firstCell)
+                        firstCell = false;
+                    else
+                        csvText.append(',');
+
+                    csvText.append(escapeCsv(generateCSVFromCell(row.getCell(columnIndex), evaluator)));
+                }
+
+                csvText.append('\n');
+            }
 
         return csvText.toString();
     }
 
     private String generateCSVFromCell(Cell cell, FormulaEvaluator evaluator)
     {
-        CellValue cellValue = evaluator.evaluate(cell);
-
-        if (cellValue.getCellType() == Cell.CELL_TYPE_STRING)
-            return cellValue.getStringValue();
-        else if (cellValue.getCellType() == Cell.CELL_TYPE_NUMERIC)
-            return Double.toString(cellValue.getNumberValue());
-        else if (cellValue.getCellType() == Cell.CELL_TYPE_BOOLEAN)
-            return Boolean.toString(cellValue.getBooleanValue());
-        else if (cellValue.getCellType() == Cell.CELL_TYPE_BLANK)
-            return "";
-        else
+        try
         {
-            logger.log(Level.WARNING, "Problem process cell: Unknown Cell Type = " + cell.getCellType());
+            if ((cell != null) && (cell.getCellType() != Cell.CELL_TYPE_BLANK))
+            {
+                CellValue cellValue = evaluator.evaluate(cell);
+
+                if (cellValue.getCellType() == Cell.CELL_TYPE_STRING)
+                    return cellValue.getStringValue();
+                else if (cellValue.getCellType() == Cell.CELL_TYPE_NUMERIC)
+                    return Double.toString(cellValue.getNumberValue());
+                else if (cellValue.getCellType() == Cell.CELL_TYPE_BOOLEAN)
+                    return Boolean.toString(cellValue.getBooleanValue());
+                else if (cellValue.getCellType() == Cell.CELL_TYPE_BLANK)
+                    return "";
+                else
+                {
+                    logger.log(Level.WARNING, "Problem process cell: Unknown CellValue Type = " + cellValue.getCellType());
+                    return "";
+                }
+            }
+            else
+                return "";
+        }
+        catch (Throwable throwable)
+        {
+            logger.log(Level.WARNING, "Problem process cell: Unknown Cell Type", throwable);
             return "";
         }
     }

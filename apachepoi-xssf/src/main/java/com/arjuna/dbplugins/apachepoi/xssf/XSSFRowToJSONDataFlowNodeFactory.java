@@ -67,7 +67,7 @@ public class XSSFRowToJSONDataFlowNodeFactory implements DataFlowNodeFactory
     {
         if (dataFlowNodeClass.equals(DataProcessor.class))
         {
-            if (! metaProperties.isEmpty())
+            if (metaProperties.isEmpty())
             {
                 List<String> propertyNames = new LinkedList<String>();
 
@@ -87,7 +87,7 @@ public class XSSFRowToJSONDataFlowNodeFactory implements DataFlowNodeFactory
     {
         if (dataFlowNodeClass.equals(DataProcessor.class))
         {
-            if (! metaProperties.isEmpty())
+            if (metaProperties.isEmpty())
                 return (T) new XSSFRowToJSONDataProcessor(name, properties);
             else
                 throw new InvalidMetaPropertyException("No metaproperties expected", null, null);

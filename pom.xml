@@ -18,6 +18,7 @@
     <properties>
         <version.com.arjuna.databroker>1.0.0p1m3l</version.com.arjuna.databroker>
         <version.org.apache.poi>3.12</version.org.apache.poi>
+        <version.org.apache.commons.lang3>3.4</version.org.apache.commons.lang3>
 
         <jboss-as.username>username</jboss-as.username>
         <jboss-as.password>password</jboss-as.password>
