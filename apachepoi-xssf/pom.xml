@@ -77,13 +77,13 @@
         <dependency>
             <groupId>com.arjuna.dbutils.testsupport</groupId>
             <artifactId>dataflownodes-dummy</artifactId>
-            <version>1.0.0p2m1</version>
+            <version>${version.com.arjuna.dbutils.testsupport}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.arjuna.dbutils.testsupport</groupId>
             <artifactId>dataflownodes-lifecycle</artifactId>
-            <version>1.0.0p2m1</version>
+            <version>${version.com.arjuna.dbutils.testsupport}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

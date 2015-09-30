@@ -17,6 +17,7 @@
 
     <properties>
         <version.com.arjuna.databroker>1.0.0p1m3l</version.com.arjuna.databroker>
+        <version.com.arjuna.dbutils.testsupport>1.0.0p2m1</version.com.arjuna.dbutils.testsupport>
         <version.org.apache.poi>3.12</version.org.apache.poi>
         <version.org.apache.commons.lang3>3.4</version.org.apache.commons.lang3>
 
