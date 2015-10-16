@@ -17,7 +17,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xssf.eventusermodel.XSSFReader;
-import org.apache.poi.xssf.model.StylesTable;
+import org.apache.poi.xssf.model.SharedStringsTable;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTRst;
+import org.xml.sax.Attributes;
+import org.xml.sax.ContentHandler;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.DefaultHandler;
+import org.xml.sax.helpers.XMLReaderFactory;
 import com.arjuna.databroker.data.DataConsumer;
 import com.arjuna.databroker.data.DataFlow;
 import com.arjuna.databroker.data.DataProcessor;
@@ -91,14 +99,14 @@ public class XSSFStreamSheetToCSVDataProcessor implements DataProcessor
                 String filename     = (String) data.get("filename");
                 String baseFilename = null;
                 if (filename != null)
-                    filename.substring(0, filename.lastIndexOf('.'));
+                    baseFilename = filename.substring(0, filename.lastIndexOf('.'));
                 else
                     baseFilename = "file";
 
-                InputStream xssfWorkbookInputStream = new ByteArrayInputStream((byte[]) data.get("data"));
-                OPCPackage  opcPackage              = OPCPackage.open(xssfWorkbookInputStream);
-                XSSFReader  xssfReader              = new XSSFReader(opcPackage);
-                StylesTable stylesTable             = xssfReader.getStylesTable();
+                InputStream        xssfWorkbookInputStream = new ByteArrayInputStream((byte[]) data.get("data"));
+                OPCPackage         opcPackage              = OPCPackage.open(xssfWorkbookInputStream);
+                XSSFReader         xssfReader              = new XSSFReader(opcPackage);
+                SharedStringsTable sharedStringsTable      = xssfReader.getSharedStringsTable();
 
                 int sheetNumber = 0;
                 Iterator<InputStream> sheetsData = xssfReader.getSheetsData();
@@ -106,15 +114,15 @@ public class XSSFStreamSheetToCSVDataProcessor implements DataProcessor
                 {
                     InputStream sheetData = sheetsData.next();
 
-                    Map<Integer, Map<Integer, Object>> sheet = parseCSVFromSheet(sheetData, opcPackage, stylesTable);
+                    Map<Integer, Map<Integer, Object>> sheet = parseCSVFromSheet(sheetData, sharedStringsTable);
 
                     String csv = generateCSVFromSheet(sheet);
                     if (csv != null)
                     {
-                        Map<String, String> csvData = new HashMap<String, String>();
-                        csvData.put("filename", baseFilename + "_" + sheetNumber + ".csv");
+                        Map<String, Object> csvData = new HashMap<String, Object>();
+                        csvData.put("filename", baseFilename + "_" + (sheetNumber + 1) + ".csv");
                         csvData.put("resourceformat", "csv");
-                        csvData.put("data", csv);
+                        csvData.put("data", csv.getBytes());
 
                         _dataProvider.produce(csvData);
                     }
@@ -174,13 +182,150 @@ public class XSSFStreamSheetToCSVDataProcessor implements DataProcessor
             return null;
     }
 
-    private Map<Integer, Map<Integer, Object>> parseCSVFromSheet(InputStream sheetData, OPCPackage opcPackage, StylesTable stylesTable)
+    private Map<Integer, Map<Integer, Object>> parseCSVFromSheet(InputStream sheetInputStream, SharedStringsTable sharedStringsTable)
     {
-        Map<Integer, Map<Integer, Object>> sheet = new HashMap<Integer, Map<Integer, Object>>();
+        try
+        {
+            Map<Integer, Map<Integer, Object>> sheet = new HashMap<Integer, Map<Integer, Object>>();
 
+            XMLReader      sheetParser  = XMLReaderFactory.createXMLReader("org.apache.xerces.parsers.SAXParser");
+            ContentHandler sheetHandler = new SheetHandler(sheet, sharedStringsTable);
+            sheetParser.setContentHandler(sheetHandler);
+            InputSource sheetSource = new InputSource(sheetInputStream);
+            sheetParser.parse(sheetSource);
+            sheetInputStream.close();
 
+            return sheet;
+        }
+        catch (Throwable throwable)
+        {
+            logger.log(Level.WARNING, "Sheet conversion to CSV", throwable);
 
-        return sheet;
+            return null;
+        }
+    }
+
+    private class SheetHandler extends DefaultHandler
+    {
+        private static final String SPREADSHEETML_NAMESPACE = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        private static final String NONE_NAMESPACE          = "";
+        private static final String CELL_TAGNAME            = "c";
+        private static final String VALUE_TAGNAME           = "v";
+        private static final String REF_ATTRNAME            = "r";
+        private static final String TYPE_ATTRNAME           = "t";
+
+        public SheetHandler(Map<Integer, Map<Integer, Object>> sheet, SharedStringsTable sharedStringsTable)
+        {
+            _sheet              = sheet;
+            _sharedStringsTable = sharedStringsTable;
+
+            _cellName  = null;
+            _cellType  = null;
+            _value     = new StringBuffer();
+        }
+
+        @Override
+        public void startElement(String uri, String localName, String qName, Attributes attributes)
+            throws SAXException
+        {
+            try
+            {
+                if ((localName != null) && localName.equals(CELL_TAGNAME) && (uri != null) && uri.equals(SPREADSHEETML_NAMESPACE))
+                {
+                    _cellName  = attributes.getValue(NONE_NAMESPACE, REF_ATTRNAME);
+                    _cellType  = attributes.getValue(NONE_NAMESPACE, TYPE_ATTRNAME);
+                }
+                else if ((localName != null) && localName.equals(VALUE_TAGNAME) && (uri != null) && uri.equals(SPREADSHEETML_NAMESPACE))
+                    _value.setLength(0);
+            }
+            catch (Throwable throwable)
+            {
+                logger.log(Level.WARNING, "Problem processing start tag", throwable);
+            }
+        }
+
+        @Override
+        public void endElement(String uri, String localName, String qName)
+            throws SAXException
+        {
+            try
+            {
+                if ((localName != null) && localName.equals(VALUE_TAGNAME) && (uri != null) && uri.equals(SPREADSHEETML_NAMESPACE))
+                {
+                    Integer rowNumber    = getRowNumber(_cellName);
+                    Integer columnNumber = getColumnNumber(_cellName);
+
+                    Map<Integer, Object> row = _sheet.get(rowNumber);
+                    if (row == null)
+                    {
+                        row = new HashMap<Integer, Object>();
+                        _sheet.put(rowNumber, row);
+                    }
+
+                    if ("str".equals(_cellType))
+                        row.put(columnNumber, _value.toString());
+                    else if ("n".equals(_cellType))
+                        row.put(columnNumber, _value.toString());
+                    else if ("s".equals(_cellType))
+                    {
+                        int index = Integer.parseInt(_value.toString());
+                        CTRst stringRef = _sharedStringsTable.getEntryAt(index);
+                        row.put(columnNumber, stringRef.getT());
+                    }
+
+                    _value.setLength(0);
+                }
+            }
+            catch (Throwable throwable)
+            {
+                logger.log(Level.WARNING, "Problem processing end tag", throwable);
+            }
+        }
+
+        @Override
+        public void characters(char[] characters, int start, int length)
+            throws SAXException
+        {
+            try
+            {
+                _value.append(characters, start, length);
+            }
+            catch (Throwable throwable)
+            {
+                logger.log(Level.WARNING, "Problem processing characters", throwable);
+            }
+        }
+
+        private Map<Integer, Map<Integer, Object>> _sheet;
+
+        private SharedStringsTable _sharedStringsTable;
+
+        private String       _cellName;
+        private String       _cellType;
+        private StringBuffer _value;
+    }
+
+    private Integer getColumnNumber(String cellName)
+    {
+        int columnNumber = 0;
+
+        int index = 0;
+        while ((index < cellName.length()) && Character.isAlphabetic(cellName.charAt(index)))
+        {
+            columnNumber = (26 * columnNumber) + (cellName.charAt(index) - 'A' + 1);
+            index++;
+        }
+
+        return columnNumber;
+    }
+
+    private Integer getRowNumber(String cellName)
+    {
+        int index = 0;
+        while ((index < cellName.length()) && Character.isAlphabetic(cellName.charAt(index)))
+            index++;
+
+        return Integer.parseInt(cellName.substring(index, cellName.length()));
     }
 
     private String generateCSVFromSheet(Map<Integer, Map<Integer, Object>> sheetData)
@@ -204,8 +349,9 @@ public class XSSFStreamSheetToCSVDataProcessor implements DataProcessor
             }
         }
 
-        for (int rowIndex = rowMin; rowIndex <= rowMax; rowIndex++)
-            generateCSVFromRow(csv, sheetData.get(rowIndex), columnMin, columnMax);
+        if ((rowMin <= rowMax) && (columnMin <= columnMax))
+            for (int rowIndex = rowMin; rowIndex <= rowMax; rowIndex++)
+                generateCSVFromRow(csv, sheetData.get(rowIndex), columnMin, columnMax);
 
         return csv.toString();
     }
@@ -228,13 +374,9 @@ public class XSSFStreamSheetToCSVDataProcessor implements DataProcessor
         if (cellData != null)
         {
             if (cellData instanceof String)
-            {
-                csv.append('"');
                 csv.append(escapeCsv((String) cellData));
-                csv.append('"');
-            }
             else
-                csv.append(cellData);
+                csv.append(escapeCsv((String) cellData.toString()));
         }
     }
 

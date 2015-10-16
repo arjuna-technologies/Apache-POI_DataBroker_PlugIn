@@ -93,7 +93,7 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
                 String filename     = (String) data.get("filename");
                 String baseFilename = null;
                 if (filename != null)
-                    filename.substring(0, filename.lastIndexOf('.'));
+                    baseFilename = filename.substring(0, filename.lastIndexOf('.'));
                 else
                     baseFilename = "file";
 
@@ -104,13 +104,13 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
                 {
                     String csv = generateCSVFromSheet(xssfWorkbook.getSheetAt(sheetIndex), xssfWorkbook.getCreationHelper().createFormulaEvaluator());
 
-                    Map<String, String> csvData = new HashMap<String, String>();
+                    Map<String, Object> csvData = new HashMap<String, Object>();
                     if (xssfWorkbook.getNumberOfSheets() == 0)
                         csvData.put("filename", baseFilename + ".csv");
                     else
                         csvData.put("filename", baseFilename + "_" + xssfWorkbook.getSheetName(sheetIndex) + ".csv");
                     csvData.put("resourceformat", "csv");
-                    csvData.put("data", csv);
+                    csvData.put("data", csv.getBytes());
 
                     _dataProvider.produce(csvData);
                 }
@@ -182,8 +182,8 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
             if ((row.getFirstCellNum() >= 0) && (row.getFirstCellNum() < firstCellNumber))
                 firstCellNumber = row.getFirstCellNum();
 
-            if ((row.getLastCellNum() >= 0) &&(row.getLastCellNum() > lastCellNumber))
-                lastCellNumber = row.getLastCellNum();
+            if ((row.getLastCellNum() >= 0) && (row.getLastCellNum() > lastCellNumber))
+                lastCellNumber = row.getLastCellNum() - 1; // "Gets the index of the last cell contained in this row plus one"!
         }
 
         if ((firstCellNumber != Integer.MAX_VALUE) && (lastCellNumber != Integer.MIN_VALUE))
