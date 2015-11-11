@@ -16,6 +16,12 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.poi.openxml4j.opc.OPCPackage;
+import org.apache.poi.poifs.crypt.CipherAlgorithm;
+import org.apache.poi.poifs.crypt.Decryptor;
+import org.apache.poi.poifs.crypt.EncryptionInfo;
+import org.apache.poi.poifs.crypt.EncryptionMode;
+import org.apache.poi.poifs.crypt.HashAlgorithm;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.xssf.eventusermodel.XSSFReader;
 import org.apache.poi.xssf.model.SharedStringsTable;
 import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTRst;
@@ -102,14 +108,32 @@ public class XSSFStreamSheetToCSVDataProcessor implements DataProcessor
                     baseFilename = filename.substring(0, filename.lastIndexOf('.'));
                 else
                     baseFilename = "file";
+                String password = (String) data.get("password");
 
-                InputStream        xssfWorkbookInputStream = new ByteArrayInputStream((byte[]) data.get("data"));
-                OPCPackage         opcPackage              = OPCPackage.open(xssfWorkbookInputStream);
-                XSSFReader         xssfReader              = new XSSFReader(opcPackage);
-                SharedStringsTable sharedStringsTable      = xssfReader.getSharedStringsTable();
+                InputStream           xssfWorkbookInputStream = new ByteArrayInputStream((byte[]) data.get("data"));
+                SharedStringsTable    sharedStringsTable      = null;
+                Iterator<InputStream> sheetsData              = null;
+                if (password != null)
+                {
+                    POIFSFileSystem poiFSFileSystem = new POIFSFileSystem(xssfWorkbookInputStream);
+                    EncryptionInfo  info            = new EncryptionInfo(poiFSFileSystem);
+                    Decryptor       decryptor       = info.getDecryptor();
+                    if (decryptor.verifyPassword(password))
+                        logger.log(Level.FINE, "Generate CSV from XSSF Verify Password failed");
+                    OPCPackage opcPackage = OPCPackage.open(decryptor.getDataStream(poiFSFileSystem));
+                    XSSFReader xssfReader = new XSSFReader(opcPackage);
+                    sharedStringsTable = xssfReader.getSharedStringsTable();
+                    sheetsData         = xssfReader.getSheetsData();
+                }
+                else
+                {
+                    OPCPackage opcPackage = OPCPackage.open(xssfWorkbookInputStream);
+                    XSSFReader xssfReader = new XSSFReader(opcPackage);
+                    sharedStringsTable = xssfReader.getSharedStringsTable();
+                    sheetsData         = xssfReader.getSheetsData();
+                }
 
                 int sheetNumber = 0;
-                Iterator<InputStream> sheetsData = xssfReader.getSheetsData();
                 while (sheetsData.hasNext())
                 {
                     InputStream sheetData = sheetsData.next();
@@ -272,6 +296,8 @@ public class XSSFStreamSheetToCSVDataProcessor implements DataProcessor
                         CTRst stringRef = _sharedStringsTable.getEntryAt(index);
                         row.put(columnNumber, stringRef.getT());
                     }
+                    else if (_cellType == null)
+                        row.put(columnNumber, _value.toString());
 
                     _value.setLength(0);
                 }
