@@ -88,7 +88,7 @@ public class XSSFStreamSheetToCSVDataFlowNodeFactory implements DataFlowNodeFact
         if (dataFlowNodeClass.equals(DataProcessor.class))
         {
             if (metaProperties.isEmpty())
-                return (T) new XSSFStreamSheetToCSVDataFlowNodeFactory(name, properties);
+                return (T) new XSSFStreamSheetToCSVDataProcessor(name, properties);
             else
                 throw new InvalidMetaPropertyException("No metaproperties expected", null, null);
         }
