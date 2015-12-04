@@ -6,8 +6,12 @@ package com.arjuna.dbplugins.apachepoi.xssf;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.HashMap;
@@ -19,8 +23,11 @@ import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.poifs.crypt.Decryptor;
 import org.apache.poi.poifs.crypt.EncryptionInfo;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.xssf.eventusermodel.XSSFReader;
 import org.apache.poi.xssf.model.SharedStringsTable;
+import org.apache.poi.xssf.model.StylesTable;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTRst;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
@@ -111,18 +118,20 @@ public class XSSFStreamSheetToCSVDataProcessor implements DataProcessor
 
                 xssfWorkbookInputStream = new ByteArrayInputStream((byte[]) data.get("data"));
                 SharedStringsTable    sharedStringsTable      = null;
+                StylesTable           stylesTable             = null;
                 Iterator<InputStream> sheetsData              = null;
                 if (password != null)
                 {
                     POIFSFileSystem poiFSFileSystem = new POIFSFileSystem(xssfWorkbookInputStream);
                     EncryptionInfo  info            = new EncryptionInfo(poiFSFileSystem);
                     Decryptor       decryptor       = info.getDecryptor();
-                    if (decryptor.verifyPassword(password))
+                    if (! decryptor.verifyPassword(password))
                         logger.log(Level.WARNING, "Generate CSV from XSSF Verify Password failed");
                     decryptorInputStream = decryptor.getDataStream(poiFSFileSystem);
                     OPCPackage opcPackage = OPCPackage.open(decryptorInputStream);
                     XSSFReader xssfReader = new XSSFReader(opcPackage);
                     sharedStringsTable = xssfReader.getSharedStringsTable();
+                    stylesTable        = xssfReader.getStylesTable();
                     sheetsData         = xssfReader.getSheetsData();
                 }
                 else
@@ -130,6 +139,7 @@ public class XSSFStreamSheetToCSVDataProcessor implements DataProcessor
                     OPCPackage opcPackage = OPCPackage.open(xssfWorkbookInputStream);
                     XSSFReader xssfReader = new XSSFReader(opcPackage);
                     sharedStringsTable = xssfReader.getSharedStringsTable();
+                    stylesTable        = xssfReader.getStylesTable();
                     sheetsData         = xssfReader.getSheetsData();
                 }
 
@@ -138,7 +148,7 @@ public class XSSFStreamSheetToCSVDataProcessor implements DataProcessor
                 {
                     InputStream sheetData = sheetsData.next();
 
-                    Map<Integer, Map<Integer, Object>> sheet = parseCSVFromSheet(sheetData, sharedStringsTable);
+                    Map<Integer, Map<Integer, Object>> sheet = parseCSVFromSheet(sheetData, stylesTable, sharedStringsTable);
 
                     String csv = generateCSVFromSheet(sheet);
                     if (csv != null)
@@ -212,14 +222,14 @@ public class XSSFStreamSheetToCSVDataProcessor implements DataProcessor
             return null;
     }
 
-    private Map<Integer, Map<Integer, Object>> parseCSVFromSheet(InputStream sheetInputStream, SharedStringsTable sharedStringsTable)
+    private Map<Integer, Map<Integer, Object>> parseCSVFromSheet(InputStream sheetInputStream, StylesTable stylesTable, SharedStringsTable sharedStringsTable)
     {
         try
         {
             Map<Integer, Map<Integer, Object>> sheet = new HashMap<Integer, Map<Integer, Object>>();
 
             XMLReader      sheetParser  = XMLReaderFactory.createXMLReader("org.apache.xerces.parsers.SAXParser");
-            ContentHandler sheetHandler = new SheetHandler(sheet, sharedStringsTable);
+            ContentHandler sheetHandler = new SheetHandler(sheet, stylesTable, sharedStringsTable);
             sheetParser.setContentHandler(sheetHandler);
             InputSource sheetSource = new InputSource(sheetInputStream);
             sheetParser.parse(sheetSource);
@@ -243,14 +253,17 @@ public class XSSFStreamSheetToCSVDataProcessor implements DataProcessor
         private static final String VALUE_TAGNAME           = "v";
         private static final String REF_ATTRNAME            = "r";
         private static final String TYPE_ATTRNAME           = "t";
+        private static final String STYLE_ATTRNAME          = "s";
 
-        public SheetHandler(Map<Integer, Map<Integer, Object>> sheet, SharedStringsTable sharedStringsTable)
+        public SheetHandler(Map<Integer, Map<Integer, Object>> sheet, StylesTable stylesTable, SharedStringsTable sharedStringsTable)
         {
             _sheet              = sheet;
+            _stylesTable        = stylesTable;
             _sharedStringsTable = sharedStringsTable;
 
             _cellName  = null;
             _cellType  = null;
+            _cellStyle = null;
             _value     = new StringBuffer();
         }
 
@@ -264,6 +277,7 @@ public class XSSFStreamSheetToCSVDataProcessor implements DataProcessor
                 {
                     _cellName  = attributes.getValue(NONE_NAMESPACE, REF_ATTRNAME);
                     _cellType  = attributes.getValue(NONE_NAMESPACE, TYPE_ATTRNAME);
+                    _cellStyle = attributes.getValue(NONE_NAMESPACE, STYLE_ATTRNAME);
                 }
                 else if ((localName != null) && localName.equals(VALUE_TAGNAME) && (uri != null) && uri.equals(SPREADSHEETML_NAMESPACE))
                     _value.setLength(0);
@@ -295,7 +309,15 @@ public class XSSFStreamSheetToCSVDataProcessor implements DataProcessor
                     if ("str".equals(_cellType))
                         row.put(columnNumber, _value.toString());
                     else if ("n".equals(_cellType))
-                        row.put(columnNumber, _value.toString());
+                    {
+                        XSSFCellStyle style           = _stylesTable.getStyleAt(Integer.parseInt(_cellStyle));
+                        String        excelDateFormat = style.getDataFormatString();
+
+                        if (isExcelDataTime(excelDateFormat))
+                            row.put(columnNumber, excelDateTimeToString(_value.toString(), excelDateFormat));
+                        else
+                            row.put(columnNumber, _value.toString());
+                    }
                     else if ("s".equals(_cellType))
                     {
                         int index = Integer.parseInt(_value.toString());
@@ -328,12 +350,44 @@ public class XSSFStreamSheetToCSVDataProcessor implements DataProcessor
             }
         }
 
+        private boolean isExcelDataTime(String excelFormat)
+        {
+            return ("DD/MM/YY".equals(excelFormat) || "DD/MM/YYYY".equals(excelFormat) || "HH:MM".equals(excelFormat));
+        }
+
+        private String excelDateTimeToString(String value, String excelDateTimeFormat)
+        {
+            if ("DD/MM/YY".equals(excelDateTimeFormat))
+            {
+                DateFormat dateFormat = new SimpleDateFormat("dd/MM/yy");
+
+                Date date = DateUtil.getJavaDate(Double.parseDouble(value));
+                return dateFormat.format(date);
+            }
+            else if ("DD/MM/YYYY".equals(excelDateTimeFormat))
+            {
+                DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+
+                Date date = DateUtil.getJavaDate(Double.parseDouble(value));
+                return dateFormat.format(date);
+            }
+            else if ("HH:MM".equals(excelDateTimeFormat))
+            {
+                long dayMinutes = Math.round(1440.0 * Double.parseDouble(value));
+                return String.format("%02d", dayMinutes / 60) + ":" + String.format("%02d", dayMinutes % 60);
+            }
+            else
+                return value;
+        }
+
         private Map<Integer, Map<Integer, Object>> _sheet;
 
+        private StylesTable        _stylesTable;
         private SharedStringsTable _sharedStringsTable;
 
         private String       _cellName;
         private String       _cellType;
+        private String       _cellStyle;
         private StringBuffer _value;
     }
 

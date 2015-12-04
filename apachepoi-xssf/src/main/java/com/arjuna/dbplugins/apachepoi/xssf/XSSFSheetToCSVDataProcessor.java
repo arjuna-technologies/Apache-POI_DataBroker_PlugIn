@@ -6,6 +6,8 @@ package com.arjuna.dbplugins.apachepoi.xssf;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -15,7 +17,9 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellValue;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -219,7 +223,19 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
                 if (cellValue.getCellType() == Cell.CELL_TYPE_STRING)
                     return cellValue.getStringValue();
                 else if (cellValue.getCellType() == Cell.CELL_TYPE_NUMERIC)
-                    return Double.toString(cellValue.getNumberValue());
+                {
+                    if (DateUtil.isCellDateFormatted(cell))
+                    {
+                        CellStyle cellStyle = cell.getCellStyle();
+
+                        String     excelDateFormat = cellStyle.getDataFormatString();
+                        String     javaDateFormat  = excelToJavaDataFormat(excelDateFormat);
+                        DateFormat dateFormat      = new SimpleDateFormat(javaDateFormat);
+                        return dateFormat.format(cell.getDateCellValue());
+                    }
+                    else
+                        return Double.toString(cellValue.getNumberValue());
+                }
                 else if (cellValue.getCellType() == Cell.CELL_TYPE_BOOLEAN)
                     return Boolean.toString(cellValue.getBooleanValue());
                 else if (cellValue.getCellType() == Cell.CELL_TYPE_BLANK)
@@ -240,6 +256,18 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
         }
     }
 
+    private String excelToJavaDataFormat(String excelDateFormat)
+    {
+        if ("DD/MM/YY".equals(excelDateFormat))
+            return "dd/MM/yy";
+        else if ("DD/MM/YYYY".equals(excelDateFormat))
+            return "dd/MM/yyyy";
+        else if ("HH:MM".equals(excelDateFormat))
+            return "HH:mm";
+        else
+            return excelDateFormat;
+    }
+    
     private String              _name;
     private Map<String, String> _properties;
     private DataFlow            _dataFlow;
