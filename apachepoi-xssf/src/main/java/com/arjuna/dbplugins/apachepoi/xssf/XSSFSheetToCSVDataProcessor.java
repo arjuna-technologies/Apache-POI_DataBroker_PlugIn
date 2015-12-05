@@ -120,7 +120,7 @@ public class XSSFSheetToCSVDataProcessor implements DataProcessor
                 }
                 xssfWorkbookInputStream.close();
 
-                xssfWorkbook.close();
+//                xssfWorkbook.close(); // Add to newer version of API
             }
             catch (Throwable throwable)
             {

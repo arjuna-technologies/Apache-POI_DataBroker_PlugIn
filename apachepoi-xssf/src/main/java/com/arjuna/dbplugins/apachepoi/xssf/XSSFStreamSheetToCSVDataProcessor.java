@@ -227,7 +227,7 @@ public class XSSFStreamSheetToCSVDataProcessor implements DataProcessor
         {
             Map<Integer, Map<Integer, Object>> sheet = new HashMap<Integer, Map<Integer, Object>>();
 
-            XMLReader      sheetParser  = XMLReaderFactory.createXMLReader("org.apache.xerces.parsers.SAXParser");
+            XMLReader      sheetParser  = XMLReaderFactory.createXMLReader();
             ContentHandler sheetHandler = new SheetHandler(sheet, stylesTable, sharedStringsTable);
             sheetParser.setContentHandler(sheetHandler);
             InputSource sheetSource = new InputSource(sheetInputStream);
